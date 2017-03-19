@@ -1,3 +1,12 @@
+/*
+ * examples/led_strobe/led_strobe.ino
+ * A component of the 'arduino-ds2408' project
+ *
+ * Provides an example of usage of the DS2408 device.
+ *
+ */
+
+
 #include <WProgram.h>
 #include <DS2408.h>
 #include <OneWire.h>
@@ -5,32 +14,36 @@
 
 #include <stdio.h>
 
-
+#define UART_BAUD_RATE 115200
 #define DEVICE_BUS_PORT 9
 
-DS2408  ds(DEVICE_BUS_PORT);
+DS2408 ds(DEVICE_BUS_PORT);
 
-Device led_device    = {0x29, 0xF5, 0x22, 0x7, 0x00, 0x00, 0x00, 0xBD};
-Device reader_device = {0x29, 0xF5, 0x22, 0x7, 0x00, 0x00, 0x00, 0x47};
+Device led_device		= { 0x29, 0xF5, 0x22, 0x7, 0x00, 0x00, 0x00, 0xBD };
+Device reader_device	= { 0x29, 0xF5, 0x22, 0x7, 0x00, 0x00, 0x00, 0x47 };
 
 
 Devices devices;
 uint8_t device_count;
 
-static FILE uartout = {0} ;
-static int uart_putchar (char c, FILE *stream) {
-    Serial.write(c) ;
-    return 0 ;
+static FILE uartout = { 0 };
+
+static int uart_putchar(char c, FILE *stream) {
+	Serial.write(c);
+	return 0;
 }
+
 void setup_stdout() {
-    fdev_setup_stream (&uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE);
-    stdout = &uartout ;
+	fdev_setup_stream(&uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE);
+	stdout = &uartout;
 }
+
 
 #ifdef CXA_PURE_VIRTUAL_FIX
 extern "C" void __cxa_pure_virtual(void);
 void __cxa_pure_virtual(void) { while(1); }
 #endif
+
 
 void print_byte(uint8_t data);
 void print_address(byte* address);
@@ -40,26 +53,28 @@ void display_mode(Device device);
 void display_activity(Device device);
 void display_state(Device device);
 
+
 void setup(void) {
-    Serial.begin(9600);
-    setup_stdout();
+	Serial.begin(UART_BAUD_RATE);
+	setup_stdout();
 
-    Serial.println("Welcome2");
+	Serial.println("Welcome2");
 
-    device_count = ds.find(&devices);
-    print_devices(&devices, device_count);
-    setup_devices(&devices, device_count);
+	device_count = ds.find(&devices);
+	print_devices(&devices, device_count);
+	setup_devices(&devices, device_count);
 }
 
 
 void loop(void) {
-    uint8_t state = 0;
-    bool left = 1;
-    for(int index=0; index<device_count; index++) {
-        print_address(devices[index]);
-        
-        if(devices[index][7] == 0xBD) {
-            ds.set_state(devices[index], state);
+	uint8_t state = 0;
+	bool left = 1;
+
+	for (int index = 0; index < device_count; index++) {
+		print_address(devices[index]);
+
+		if (devices[index][7] == 0xBD) {
+			ds.set_state(devices[index], state);
             for(int index1=0; index1<100; index1++) {
                 if(state == 0xFF || state == 0)
                     left = !left;
@@ -71,7 +86,7 @@ void loop(void) {
                 delay(100);
             }
         }
-        
+
         display_mode(devices[index]);
         display_activity(devices[index]);
         display_state(devices[index]);
@@ -79,24 +94,31 @@ void loop(void) {
     }
 }
 
+
 void setup_devices(Devices* devices, uint8_t device_count) {
     for(int index=0; index < device_count; index++) {
         ds.set_mode((*devices)[index], RESET_PIN_MODE(STROBE_MODE));
     }
 }
 
+
 void display_mode(Device device) {
     Serial.print(" MODE=");
     print_byte(ds.get_mode(device));
 }
+
+
 void display_activity(Device device) {
     Serial.print(" ACTIVTY=");
     print_byte(ds.get_activity(device));
 }
+
+
 void display_state(Device device) {
     Serial.print(" STATE=");
     print_byte(ds.get_state(device));
 }
+
 
 void print_byte(uint8_t data) {
     for(int index=0; index<8; index++) {
@@ -104,6 +126,8 @@ void print_byte(uint8_t data) {
         data = data >> 1;
     }
 }
+
+
 void print_address(byte* address) {
     Serial.print("[");
     for(int index = 0; index < sizeof(Device); index++) {
@@ -113,6 +137,7 @@ void print_address(byte* address) {
     }
     Serial.print("] ");
 }
+
 
 void print_devices(Devices* devices, uint8_t device_count) {
     Serial.print("Found ");
